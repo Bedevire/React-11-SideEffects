@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Places from './components/Places.jsx';
 import { AVAILABLE_PLACES } from './data.js';
@@ -34,48 +34,50 @@ function App() {
   }, []);
 
 
+  function handleStopRemovePlace(){
+    setModalIsOpen(false);
+  }
 
   function handleStartRemovePlace(id) {
     setModalIsOpen(true);
     selectedPlace.current = id;
   }
 
-  function handleStopRemovePlace() {
-    setModalIsOpen(false);
-  }
-
-  function handleSelectPlace(id) {
-    setPickedPlaces((prevPickedPlaces) => {
-      if (prevPickedPlaces.some((place) => place.id === id)) {
-        console.log('We already have a place with the ID ' + id);
-        return prevPickedPlaces;
+  const handleSelectPlace = useCallback(
+    function handleSelectPlace(id) {
+      setPickedPlaces((prevPickedPlaces) => {
+        if (prevPickedPlaces.some((place) => place.id === id)) {
+          return prevPickedPlaces;
+        }
+        const place = AVAILABLE_PLACES.find((place) => place.id === id);
+        return [place, ...prevPickedPlaces];
+      });
+      
+      let currentIDs = JSON.parse(localStorage.getItem('selectedPlaces') || []);
+      if(currentIDs.indexOf(id) === -1){
+        localStorage.setItem('selectedPlaces', JSON.stringify([id, ...currentIDs]));
       }
-      const place = AVAILABLE_PLACES.find((place) => place.id === id);
-      return [place, ...prevPickedPlaces];
-    });
-    
-    let currentIDs = JSON.parse(localStorage.getItem('selectedPlaces') || []);
-    if(currentIDs.indexOf(id) === -1){
-      localStorage.setItem('selectedPlaces', JSON.stringify([id, ...currentIDs]));
     }
+  );
 
-  }
 
-  function handleRemovePlace() {
-    setPickedPlaces((prevPickedPlaces) =>
-      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
-    );
-
-    let currentIDs = JSON.parse(localStorage.getItem('selectedPlaces'));
-    const newIDs = currentIDs.filter((id) => id !== selectedPlace.current);
-    localStorage.setItem('selectedPlaces', JSON.stringify(newIDs));
-
-   setModalIsOpen(false);
-  }
+  const handleRemovePlace = useCallback(
+    function handleRemovePlace() {
+      setPickedPlaces((prevPickedPlaces) =>
+        prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
+      );
+  
+      setModalIsOpen(false);
+  
+      let currentIDs = JSON.parse(localStorage.getItem('selectedPlaces'));
+      const newIDs = currentIDs.filter((id) => id !== selectedPlace.current);
+      localStorage.setItem('selectedPlaces', JSON.stringify(newIDs));
+    }, []
+  );
 
   return (
     <>
-      <Modal open={modalisOpen}>
+      <Modal open={modalisOpen} onClose={handleStopRemovePlace}>
         <DeleteConfirmation
           onCancel={handleStopRemovePlace}
           onConfirm={handleRemovePlace}
